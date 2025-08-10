@@ -1,33 +1,57 @@
-# cep-race
+# Multithreading — Race entre APIs CEP
 
-Small CLI in Go that races two Brazilian CEP APIs (BrasilAPI and ViaCEP) and accepts the fastest successful response.
+Projeto CLI Go que busca um CEP simultaneamente em duas APIs públicas brasileiras, aceitando o resultado da que responder primeiro com sucesso.
 
 ## Requirements
 
 - Go 1.20+
 
 ## Files
+
 - `main.go` — main program entrypoint
 - `fetcher.go` — API fetchers implementations
 - `race.go` — race logic service
 - `model.go` — shared structs
 - `go.mod` — module definition
 
-## Behavior / Requirements implemented
-- Send two requests **concurrently** to:
-  - `https://brasilapi.com.br/api/cep/v1/<cep>`
-  - `http://viacep.com.br/ws/<cep>/json/`
-- Accept the **first successful** response and discard the slower request.
-- Global timeout: **1 second**. If neither API returns successfully within 1 second, print a timeout error.
-- Print the address fields and which API supplied them.
+## Principais características
 
-## Usage
+- Concorre simultaneamente entre:
+  - <https://brasilapi.com.br/api/cep/v1/><cep>
+  - <http://viacep.com.br/ws/><cep>/json/
+- Timeout global de 1 segundo.
+- Aceita primeiro resultado bem-sucedido, cancela requisições concorrentes restantes.
+- Exibe resultado e qual API forneceu os dados.
+
+## Estrutura do projeto
+
+```bash
+.
+├── main.go        # Entrada CLI, orquestra chamada race
+├── fetcher.go     # Implementação fetchers das APIs
+├── race.go        # Lógica de concorrência e cancelamento
+├── model.go       # Structs compartilhados
+├── go.mod
+└── README.md
+```
+
+## Fluxo do sistema
+
+```
+CLI -> race service -> [API1, API2 concorrentes]
+                      |
+                      -> primeiro sucesso -> cancela concorrentes -> retorna resposta
+```
+
+## Uso típico
+
 ```bash
 go build
 go run *.go 01153000
 ```
 
-Example output:
+### Exemplo de saída
+
 ```bash
 Source: viacep
 CEP: 01153-000
@@ -37,16 +61,17 @@ City: São Paulo
 State: SP
 ```
 
-Design notes (short)
-- Two or more goroutines run the HTTP requests concurrently and send results to a channel.
-- A parent context.WithTimeout(..., 1*time.Second) enforces the overall timeout.
-- Per-request context.WithCancel(parentCtx) allows cancellation of the slower request when a winner arrives.
-- The program picks the first successful response. If both APIs error, the first error received is reported. If none respond within 1s, a timeout is printed.
-- Interfaces allow easy extension to more fetchers or mocks for testing.
-- Separation of concerns makes code easier to maintain and test.
+## Design notes
 
-## Next steps / improvements
-- Normalize CEP input (strip non-digit characters).
-- Add retries with exponential backoff for transient network errors (careful with the 1s deadline).
-- Add unit tests using httptest.Server to simulate providers with configurable latencies and responses.
-- Wrap the CLI with proper argument parsing and validation.
+- Uso extensivo de goroutines e canais para concorrência.
+- context.WithTimeout controla timeout global.
+- Cancelamento de requisições lentas com context.WithCancel.
+- Interface para fetchers permite testes e extensibilidade.
+- Separação clara entre lógica de fetch, corrida e CLI.
+
+## Próximos passos recomendados para ambos projetos
+
+- Adicionar testes unitários e de integração (mocks para APIs e DB).
+- Melhorar validação e tratamento de erros.
+- Implementar logging estruturado.
+- Expandir para casos de uso reais (ex.: cache, retries, backoff).

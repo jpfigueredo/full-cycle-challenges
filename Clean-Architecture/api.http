@@ -1,0 +1,85 @@
+#############
+### Health ###
+#############
+GET http://localhost:8080/health
+Accept: application/json
+
+
+#############
+### Order ###
+#############
+
+### Create Order
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "item": "Aspirin",
+  "amount": 10,
+  "patient_id": 1,
+  "medication": "Aspirin",
+  "dosage": "100mg",
+  "status": "OPEN"
+}
+
+### List Orders
+GET http://localhost:8080/orders
+Accept: application/json
+
+### Get Order by ID
+GET http://localhost:8080/orders/1
+Accept: application/json
+
+### Update Order
+PUT http://localhost:8080/orders/1
+Content-Type: application/json
+
+{
+  "item": "Ibuprofen",
+  "amount": 20,
+  "patient_id": 1,
+  "medication": "Ibuprofen",
+  "dosage": "200mg",
+  "status": "CLOSED"
+}
+
+### Delete Order
+DELETE http://localhost:8080/orders/1
+Accept: application/json
+
+
+###############
+### Patient ###
+###############
+
+### Create Patient
+POST http://localhost:8080/patients
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "age": 30,
+  "email": "john.doe@example.com"
+}
+
+### Get all patients
+GET http://localhost:8080/patients
+Accept: application/json
+
+### Get patient by ID
+GET http://localhost:8080/patients/1
+Accept: application/json
+
+### Update patient
+PUT http://localhost:8080/patients/1
+Content-Type: application/json
+
+{
+  "name": "John Doe Updated",
+  "age": 31,
+  "email": "john.doe.updated@example.com"
+}
+
+### Delete patient
+DELETE http://localhost:8080/patients/1
+Accept: application/json

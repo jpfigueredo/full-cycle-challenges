@@ -76,3 +76,33 @@ func SetupRouter() *gin.Engine {
 
 	return router
 }
+
+func SetupRouterWithServices(orderService service.OrderService, db *gorm.DB) *gin.Engine {
+	router := gin.Default()
+
+	// Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	// Handlers
+	orderHandler := handler.NewOrderHandler(orderService)
+	router.GET("/orders", orderHandler.GetOrders)
+	router.POST("/orders", orderHandler.CreateOrder)
+	router.GET("/orders/:id", orderHandler.GetOrderByID)
+	router.PUT("/orders/:id", orderHandler.UpdateOrder)
+	router.DELETE("/orders/:id", orderHandler.DeleteOrder)
+
+	// Patient still uses repo/service created locally
+	patientRepo := repository.NewPatientRepository(db)
+	patientService := service.NewPatientService(patientRepo)
+	patientHandler := handler.NewPatientHandler(patientService)
+
+	router.GET("/patients", patientHandler.GetPatients)
+	router.POST("/patients", patientHandler.CreatePatient)
+	router.GET("/patients/:id", patientHandler.GetPatientByID)
+	router.PUT("/patients/:id", patientHandler.UpdatePatient)
+	router.DELETE("/patients/:id", patientHandler.DeletePatient)
+
+	return router
+}

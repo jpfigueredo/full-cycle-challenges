@@ -1,0 +1,15 @@
+type Order {
+  id: ID!
+  item: String!
+  amount: Int!
+  patientId: Int!
+  medication: String
+  dosage: String
+  status: String!
+  createdAt: String
+  updatedAt: String
+}
+
+type Query {
+  listOrders: [Order!]!
+}

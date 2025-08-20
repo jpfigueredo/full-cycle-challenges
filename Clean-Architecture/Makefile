@@ -20,3 +20,11 @@ test:
 
 clean:
 	rm -rf $(BIN_DIR)
+	
+PROTOC_GEN = protoc \
+	--go_out=. \
+	--go-grpc_out=. \
+	-I=.
+
+proto:
+	$(PROTOC_GEN) internal/api/grpc/order.proto

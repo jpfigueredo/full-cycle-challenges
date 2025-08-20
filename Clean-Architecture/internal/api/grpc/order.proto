@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package orderpb;
+
+option go_package = "internal/api/grpc/orderpb";
+
+message Order {
+  uint32 id = 1;
+  string item = 2;
+  int32 amount = 3;
+  int64 patient_id = 4;
+  string medication = 5;
+  string dosage = 6;
+  string status = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListOrdersRequest {}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+}
+
+service OrderService {
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+}

@@ -1,0 +1,19 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: rate-limiter-redis
+    ports:
+      - "6379:6379"
+  app:
+    build: .
+    container_name: rate-limiter-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_ADDR=redis:6379
+      - MAX_REQUESTS_PER_SECOND=5
+      - MAX_TOKEN_REQUESTS_PER_SECOND=10
+      - WINDOW_SECONDS=1
+      - BLOCK_DURATION_SECONDS=300

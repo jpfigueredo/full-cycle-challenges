@@ -10,10 +10,10 @@ import (
 
 type RateLimiterUseCase struct {
 	Repo          repository.RateLimiterRepository
-	MaxRequests   int64         // Ex.: 5 por IP, carregado de config
-	MaxTokenReqs  int64         // Sobrepõe se token presente
-	Window        time.Duration // Janela de tempo, ex.: 1s
-	BlockDuration time.Duration // Tempo de bloqueio, ex.: 5min
+	MaxRequests   int64
+	MaxTokenReqs  int64
+	Window        time.Duration
+	BlockDuration time.Duration
 }
 
 func NewRateLimiterUseCase(repo repository.RateLimiterRepository, maxReq int64, maxToken int64, window, block time.Duration) *RateLimiterUseCase {
@@ -30,33 +30,30 @@ func (uc *RateLimiterUseCase) CheckAndIncrement(ctx context.Context, ip, token s
 	key := ip
 	max := uc.MaxRequests
 	if token != "" {
-		key = "token:" + token // Prefixo para diferenciar
+		key = "token:" + token
 		max = uc.MaxTokenReqs
 	}
 
-	// Verifica bloqueio primeiro
 	blocked, err := uc.Repo.IsBlocked(ctx, key)
 	if err != nil {
 		return false, err
 	}
 	if blocked {
-		return false, nil // Bloqueado: nega acesso
+		return false, nil
 	}
 
-	// Incrementa e verifica limite
 	count, err := uc.Repo.Increment(ctx, key, uc.Window)
 	if err != nil {
 		return false, err
 	}
 	if count > max {
-		// Bloqueia se excedido
 		if err := uc.Repo.Block(ctx, key, uc.BlockDuration); err != nil {
 			return false, err
 		}
 		return false, nil
 	}
 
-	return true, nil // Permitido
+	return true, nil
 }
 
 func (uc *RateLimiterUseCase) GetLimitState(ctx context.Context, ip, token string) (*entity.RateLimit, error) {

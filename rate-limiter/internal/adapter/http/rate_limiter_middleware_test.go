@@ -13,7 +13,7 @@ import (
 	"github.com/jpfigueredo/rate-limiter-challenge/internal/usecase"
 )
 
-type mockRepo struct{} // Mock local para testes independentes
+type mockRepo struct{}
 
 func (m *mockRepo) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
 	return 1, nil
@@ -63,7 +63,7 @@ type mockRepoBlocked struct{}
 
 func (m *mockRepoBlocked) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
 	return 2, nil
-} // > max
+}
 func (m *mockRepoBlocked) Block(ctx context.Context, key string, blockDuration time.Duration) error {
 	return nil
 }

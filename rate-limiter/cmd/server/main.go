@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/jpfigueredo/rate-limiter-challenge/internal/adapter/http"
-	"github.com/jpfigueredo/rate-limiter-challenge/internal/config" // Criaremos isso
+	"github.com/jpfigueredo/rate-limiter-challenge/internal/config"
 	"github.com/jpfigueredo/rate-limiter-challenge/internal/usecase"
 	"github.com/jpfigueredo/rate-limiter-challenge/pkg/storage"
 )
@@ -15,7 +15,7 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	cfg := config.Load() // Carrega envs
+	cfg := config.Load()
 
 	repo := storage.NewRedisRateLimiter(cfg.RedisAddr)
 	if err := repo.Client.Ping(context.Background()).Err(); err != nil {
@@ -25,7 +25,7 @@ func main() {
 	uc := usecase.NewRateLimiterUseCase(repo, cfg.MaxRequests, cfg.MaxTokenRequests, time.Second, cfg.BlockDuration)
 
 	r := gin.Default()
-	r.Use(http.RateLimiterMiddleware(uc)) // Aplica globalmente
+	r.Use(http.RateLimiterMiddleware(uc))
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong"})

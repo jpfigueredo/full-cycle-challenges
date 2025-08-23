@@ -114,23 +114,6 @@ func TestIncrementPartialExpiration(t *testing.T) {
 	}
 }
 
-// func TestBlockZeroDuration(t *testing.T) {
-// 	mr := miniredis.RunT(t)
-// 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-// 	repo := &storage.RedisRateLimiter{Client: client}
-
-// 	err := repo.Block(context.Background(), "test", 0)
-// 	if err != nil {
-// 		t.Errorf("Expected no error on zero duration block: got %v", err)
-// 	}
-
-// 	mr.FastForward(time.Second)
-// 	blocked, err := repo.IsBlocked(context.Background(), "test")
-// 	if err != nil || blocked {
-// 		t.Errorf("Expected not blocked with zero duration: got blocked=%v, err=%v", blocked, err)
-// 	}
-// }
-
 func TestGetStateFull(t *testing.T) {
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})

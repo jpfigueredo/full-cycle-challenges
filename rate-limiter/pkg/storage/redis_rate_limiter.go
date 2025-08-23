@@ -14,11 +14,11 @@ type RedisRateLimiter struct {
 	Client *redis.Client
 }
 
-var _ repository.RateLimiterRepository = (*RedisRateLimiter)(nil) // Garante implementação da interface
+var _ repository.RateLimiterRepository = (*RedisRateLimiter)(nil)
 
 func NewRedisRateLimiter(addr string) *RedisRateLimiter {
 	client := redis.NewClient(&redis.Options{
-		Addr: addr, // De config
+		Addr: addr,
 	})
 	return &RedisRateLimiter{Client: client}
 }
@@ -30,7 +30,7 @@ func (r *RedisRateLimiter) Increment(ctx context.Context, key string, window tim
 		return 0, err
 	}
 	if val == 1 {
-		r.Client.Expire(ctx, rateKey, window) // Expira na janela se novo
+		r.Client.Expire(ctx, rateKey, window)
 	}
 	return val, nil
 }

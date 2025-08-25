@@ -23,8 +23,3 @@ Este projeto implementa um rate limiter em Go para controlar requisições por I
 - IP Limite: Com max=5, 6ª req em 1s retorna 429, bloqueia por 5min.
 - Token: Com token max=10, ignora IP limite, usa 10.
 - Monitor: Use GetLimitState no use case para estado (count/blockedUntil).
-
-### Dependências
-- Gin, go-redis, godotenv, miniredis (testes).
-
-Para rodar testes no Docker: `docker-compose run --rm app go test ./... -cover`.

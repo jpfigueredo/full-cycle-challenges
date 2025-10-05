@@ -1,0 +1,7 @@
+go 1.24.6
+
+use (
+	./internal/shared
+	./service-a
+	./service-b
+)

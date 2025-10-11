@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/jpfigueredo/cep-clima-distributed/service-a/internal/entity"
-	"github.com/jpfigueredo/cep-clima-distributed/service-a/internal/repository"
+	"github.com/jpfigueredo/cep-clima-distributed/internal/shared/entity"
+	"github.com/jpfigueredo/cep-clima-distributed/internal/shared/repository"
 )
 
 var (

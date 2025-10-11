@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jpfigueredo/cep-clima-distributed/service-a/internal/repository"
+	"github.com/jpfigueredo/cep-clima-distributed/internal/shared/repository"
 )
 
 func TestWeatherAPIRepoSucesso(t *testing.T) {

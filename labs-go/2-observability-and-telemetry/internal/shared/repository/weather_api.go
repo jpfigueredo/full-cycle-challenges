@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/jpfigueredo/cep-clima-distributed/service-a/internal/entity"
+	"github.com/jpfigueredo/cep-clima-distributed/internal/shared/entity"
 )
 
 type WeatherAPIRepo struct {

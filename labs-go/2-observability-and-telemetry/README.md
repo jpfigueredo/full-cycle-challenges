@@ -1,56 +1,146 @@
 # CEP-Clima Challenge
 
-Este projeto é um sistema em Go que recebe um CEP brasileiro válido (8 dígitos), consulta a localização via ViaCEP, obtém a temperatura atual via WeatherAPI e retorna as temperaturas em Celsius, Fahrenheit e Kelvin. O sistema é containerizado com Docker e deployado no Google Cloud Run.
+Este repositório contém uma implementação em Go de dois serviços:
 
-## Requisitos
-- Go 1.24.6 ou superior (para desenvolvimento local).
-- Docker e Docker Compose (para testes containerizados).
-- Chave API válida da WeatherAPI (gratuita em weatherapi.com) – adicione em `.env`.
-- Conta GCP free tier para validar o deploy (se necessário).
+- `service-a` — responsável por receber o input (CEP) via HTTP POST e repassar para o Serviço B.
+- `service-b` — responsável por orquestrar a busca da localização (via ViaCEP) e da temperatura atual (via WeatherAPI), converter as temperaturas e retornar o resultado junto com a cidade.
 
-## Configuração Local
-1. Clone o repositório e navegue para a pasta.
-2. Crie `.env` baseado em `.env.example` e preencha com o seu `WEATHER_API_KEY`.
-3. Rode `go mod tidy` para dependências.
+O projeto também tem integração com OpenTelemetry (OTEL) e Zipkin para tracing distribuído.
 
-## Como Rodar Localmente
-- Sem Docker: `go run cmd/server/main.go`. O server roda em `localhost:8080`.
-- Com Docker: `docker-compose up --build`. O app fica disponível em `localhost:8080`.
+## Requisitos implementados
 
-## Testes Automatizados
-Rode `go test ./internal/...` para validar units (validação CEP, conversões, mocks de APIs). Todos devem passar para confirmação de lógica.
+- Serviço A
+  - Recebe POST `{ "cep": "29902555" }` no endpoint `/clima`.
+  - Valida que o CEP é uma string com 8 dígitos; se inválido retorna HTTP 422 com mensagem `invalid zipcode`.
+  - Encaminha requisição para Serviço B e propaga trace (OTEL).
 
-## Como Testar e Validar (Para Avaliadores)
-Para aprovar, teste os cenários abaixo. Use curl ou browser. O endpoint é `/clima/:cep`.
+- Serviço B
+  - Recebe GET `/clima/:cep` com CEP válido de 8 dígitos.
+  - Consulta ViaCEP (`https://viacep.com.br/`) para obter a localidade.
+  - Consulta WeatherAPI (`https://www.weatherapi.com/`) para obter a temperatura em Celsius e converte para Fahrenheit e Kelvin.
+  - Retorna HTTP 200 com JSON: `{ "city": "São Paulo", "temp_C": 28.5, "temp_F": 83.3, "temp_K": 301.5 }`.
+  - Em caso de CEP inválido retorna HTTP 422 `invalid zipcode`.
+  - Em caso de CEP não encontrado retorna HTTP 404 `can not find zipcode`.
 
-### Cenário 1: Sucesso (HTTP 200)
-- Request: `curl localhost:8080/clima/01001000` (CEP válido de São Paulo).
-- Esperado: JSON como `{"temp_C":25.3,"temp_F":77.5,"temp_K":298.4}` (valores reais variam; verifique se são números arredondados, com conversões corretas: F = C*1.8+32, K = C+273).
-- Validação: Confirme que a localização é consultada corretamente e temperaturas convertidas.
+- Observabilidade
+  - Tracing distribuído entre `service-a` e `service-b` via OpenTelemetry.
+  - Exportador Zipkin incluído; o serviço Zipkin está configurado no `docker-compose.yml` e fica disponível em `http://localhost:9411`.
 
-### Cenário 2: CEP Inválido (Formato Incorreto, HTTP 422)
-- Request: `curl localhost:8080/clima/1234567` (menos de 8 dígitos) ou `curl localhost:8080/clima/123456789` (mais de 8) ou `curl localhost:8080/clima/abc-defgh` (não numérico).
-- Esperado: `{"message":"invalid zipcode"}`.
-- Validação: A limpeza remove não-dígitos e checa exatamente 8 dígitos.
+## Requisitos técnicos
 
-### Cenário 3: CEP Não Encontrado (HTTP 404)
-- Request: `curl localhost:8080/clima/00000000` (CEP inexistente).
-- Esperado: `{"message":"can not find zipcode"}`.
-- Validação: ViaCEP retorna vazio ou erro, mapeado para 404.
+- Go (recomendado 1.24.x)
+- Docker e Docker Compose
+- Chave da WeatherAPI (adicione em `.env`)
 
-### Cenário 4: Erro Interno (HTTP 500)
-- Simule falha: Use chave API inválida ou CEP que leva a erro na WeatherAPI (ex.: localização inválida).
-- Esperado: `{"message":"internal error"}`.
-- Validação: Erros de rede/API são capturados sem crash.
+## Estrutura do repositório (resumida)
 
-### Validação com Docker
-- Rode `docker-compose up` e teste os curls acima – deve replicar o local.
-- Inspecione logs: `docker-compose logs` para debugs (ex.: CEP limpo, localização, clima).
+- `internal/shared` — tipos compartilhados (`entity`), repositórios de integração com APIs externas e lógica de usecase comum.
+- `service-a` — pequeno front que valida input e chama service-b.
+- `service-b` — orquestra as integrações externas e retorna o payload final.
+- `docker-compose.yml` — orquestra `zipkin`, `service-a` e `service-b`.
 
-## Deploy no Google Cloud Run
-O app está deployado em https://cep-clima-797444264306.us-central1.run.app/clima/:cep (ex: 01001000). Teste os mesmos cenários substituindo localhost pelo URL.
+## Variáveis de ambiente
 
-- Para recriar: Siga os passos no histórico (build/push/deploy com gcloud).
-- Validação: Confirme que o free tier não gera custos (monitore no console GCP).
+Crie um arquivo `.env` na raiz do projeto com a sua chave WeatherAPI:
 
-Se todos cenários passarem e testes rodarem sem falhas, o projeto atende aos requisitos!
+```
+WEATHER_API_KEY=SEU_API_KEY_AQUI
+```
+
+(O `docker-compose.yml` usa esse `.env` para ambos os serviços.)
+
+## Como rodar localmente (sem Docker)
+
+1. Garanta que você está na raiz do projeto.
+2. Sincronize o workspace Go: `go work sync`.
+3. Em cada módulo atualize dependências e gere `go.sum`:
+   - `cd service-a && go mod tidy`
+   - `cd service-b && go mod tidy`
+   - `cd internal/shared && go mod tidy` (opcional)
+4. Rodar os serviços localmente:
+   - `cd service-b && go run server/main.go` (porta padrão `8081`)
+   - Em outra janela: `cd service-a && go run server/main.go` (porta padrão `8080`)
+5. Teste via curl/postman:
+   - `curl -X POST -H "Content-Type: application/json" -d '{"cep":"01001000"}' http://localhost:8080/clima`
+
+## Como rodar com Docker Compose
+
+1. Preencha `.env` com `WEATHER_API_KEY`.
+2. Build e subir os serviços:
+
+```
+docker compose up --build
+```
+
+3. Acesse Zipkin em `http://localhost:9411` para visualizar traces.
+
+Observações e troubleshooting para builds Docker:
+- O Docker builder precisa ter acesso ao proxy do Go (proxy.golang.org). Se ocorrerem erros de TLS ou timeouts durante `go mod download` dentro do builder, tente:
+  - Reexecutar o build (`docker compose build --no-cache`) — downloads transitórios podem falhar intermitentemente.
+  - Forçar uso da rede do host para o passo de build (exemplo manual): `docker build --network=host -f service-b/Dockerfile .` (ou ajustar o compose para usar build options).
+- Garanta que os arquivos `service-a/go.sum` e `service-b/go.sum` estejam atualizados (execute `go mod tidy` localmente antes do build). Arquivos `go.sum` faltantes causam erros do tipo "missing go.sum entry" durante o build.
+
+## Testes automatizados
+
+Rode os testes unitários:
+
+```
+go test ./internal/... ./service-b/... ./service-a/...
+```
+
+Ou apenas para o shared:
+
+```
+go test ./internal/shared/...
+```
+
+## Endpoints e exemplos
+
+- Serviço A
+  - POST /clima
+    - Body: `{ "cep": "29902555" }`
+    - 200: encaminha e retorna o JSON do service-b
+    - 422: `{ "message": "invalid zipcode" }`
+
+- Serviço B
+  - GET /clima/:cep
+    - 200: `{ "city": "...", "temp_C": 28.5, "temp_F": 83.3, "temp_K": 301.5 }`
+    - 422: `{ "message": "invalid zipcode" }`
+    - 404: `{ "message": "can not find zipcode" }`
+
+Exemplo curl:
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{"cep":"01001000"}' http://localhost:8080/clima
+```
+
+Ou diretamente no Service B:
+
+```
+curl http://localhost:8081/clima/01001000
+```
+
+## Checklist de entrega (mapeado ao enunciado)
+
+- [x] Receber CEP no Service A e validá-lo (8 dígitos string).
+- [x] Encaminhar requisição ao Service B via HTTP.
+- [x] Service B consulta ViaCEP e WeatherAPI e retorna temperaturas em C/F/K e a cidade.
+- [x] Retornar códigos HTTP corretos para sucesso e erros (200, 422, 404).
+- [x] Implementação básica de tracing com OpenTelemetry e exporter Zipkin (Zipkin rodando via docker-compose).
+- [ ] (Recomendado) Confirmar que `go.sum` de todos os módulos foi gerado e commitado antes de subir via Docker.
+- [ ] (Recomendado) Remover duplicação de `service-b/entity/cep_clima.go` caso exista — a fonte canônica das entidades deve ser `internal/shared/entity`.
+
+## O que falta / próximas ações sugeridas
+
+1. Atualizar e commitar `go.sum` nos módulos `service-a` e `service-b` (execute `go mod tidy` em cada pasta). Isso evita erros de "missing go.sum entry" durante builds Docker.
+2. Remover o arquivo duplicado `service-b/entity/cep_clima.go` (se ainda existir) para evitar confusão de tipos duplicados. O código atual já referencia `internal/shared/entity`.
+3. Rodar a suíte de testes (`go test`) e validar comportamento.
+4. Se houver instabilidade em builds dentro do Docker (TLS/timeout), executar build com `--network=host` ou reexecutar até completar os downloads.
+
+Se você quiser, eu posso:
+- Aplicar a remoção do arquivo duplicado `service-b/entity/cep_clima.go` para manter apenas `internal/shared/entity`.
+- Rodar (guiar) os comandos `go mod tidy` e gerar instruções automáticas para commitar `go.sum`.
+
+---
+
+Se quiser que eu faça as alterações (remover arquivo duplicado e/ou rodar edições adicionais), diga qual ação prefere e eu aplico as mudanças.

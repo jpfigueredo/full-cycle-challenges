@@ -1,29 +1,36 @@
 services:
   zipkin:
-    image: openzipkin/zipkin
+    image: openzipkin/zipkin:2.23.2
     container_name: zipkin
     ports:
       - "9411:9411"
     environment:
-      - STORAGE_TYPE=memory
+      - STORAGE_TYPE=mem
 
   service-a:
-    build: ./service-a
+    build:
+      context: .
+      dockerfile: service-a/Dockerfile
     container_name: service-a
     ports:
       - "8080:8080"
     depends_on:
       - service-b
+      - zipkin
     environment:
-      - SERVICE_B_URL=http://service-b:8081  # Chama B localmente
+      - SERVICE_B_URL=http://service-b:8081
+      - OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - OTEL_SERVICE_NAME=service-a
     env_file:
       - .env
 
   service-b:
-    build: ./service-b
+    build:
+      context: .
+      dockerfile: service-b/Dockerfile
     container_name: service-b
     ports:
-      - "8081:8080"  # Porta interna 8080, exposta 8081
+      - "8081:8081"
     depends_on:
       - zipkin
     environment:

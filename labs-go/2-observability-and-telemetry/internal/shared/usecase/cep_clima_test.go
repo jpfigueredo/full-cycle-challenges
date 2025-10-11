@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jpfigueredo/cep-clima-distributed/service-a/internal/entity"
-	"github.com/jpfigueredo/cep-clima-distributed/service-a/internal/usecase"
+	"github.com/jpfigueredo/cep-clima-distributed/internal/shared/entity"
+	"github.com/jpfigueredo/cep-clima-distributed/internal/shared/usecase"
 )
 
 type mockCEPRepo struct{}
